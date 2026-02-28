@@ -3,9 +3,9 @@ use rayon::prelude::*;
 #[cfg(feature = "liquid")]
 use crate::elements::ebcompact::*;
 #[cfg(not(feature = "liquid"))]
-use bitcoin::consensus::encode::{deserialize, Decodable};
+use bitcoin::consensus::encode::Decodable;
 #[cfg(feature = "liquid")]
-use elements::encode::{deserialize, Decodable};
+use elements::encode::Decodable;
 
 use std::collections::HashMap;
 use std::fs;
@@ -89,7 +89,8 @@ fn bitcoind_fetcher(
             let total_blocks_fetched = new_headers.len();
             for entries in new_headers.chunks(100) {
                 if fetcher_count % 50 == 0 && total_blocks_fetched >= 50 {
-                    info!("fetching blocks {}/{} ({:.1}%)",
+                    info!(
+                        "fetching blocks {}/{} ({:.1}%)",
                         blocks_fetched,
                         total_blocks_fetched,
                         blocks_fetched as f32 / total_blocks_fetched as f32 * 100.0
@@ -148,10 +149,11 @@ fn blkfiles_fetcher(
                     .into_iter()
                     .filter_map(|(block, size)| {
                         index += 1;
-                        debug!("fetch block {:}/{:} {:.2}%",
+                        debug!(
+                            "fetch block {:}/{:} {:.2}%",
                             index,
                             block_count,
-                            (index/block_count) as f32/100.0
+                            (index / block_count) as f32 / 100.0
                         );
                         let blockhash = block.block_hash();
                         entry_map
@@ -188,7 +190,8 @@ fn blkfiles_reader(blk_files: Vec<PathBuf>, xor_key: Option<[u8; 8]>) -> Fetcher
         spawn_thread("blkfiles_reader", move || {
             let blk_files_len = blk_files.len();
             for (count, path) in blk_files.iter().enumerate() {
-                info!("block file reading {:}/{:} {:.2}%",
+                info!(
+                    "block file reading {:}/{:} {:.2}%",
                     count,
                     blk_files_len,
                     count / blk_files_len
@@ -281,7 +284,12 @@ fn parse_blocks(blob: Vec<u8>, magic: u32) -> Result<Vec<SizedBlock>> {
     Ok(pool.install(|| {
         slices
             .into_par_iter()
-            .map(|(slice, size)| (deserialize(slice).expect("failed to parse Block"), size))
+            .map(|(slice, size)| {
+                (
+                    crate::chain::deserialize_block(slice).expect("failed to parse Block"),
+                    size,
+                )
+            })
             .collect()
     }))
 }

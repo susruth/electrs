@@ -73,7 +73,8 @@ fn header_from_value(value: Value) -> Result<BlockHeader> {
 fn block_from_value(value: Value) -> Result<Block> {
     let block_hex = value.as_str().chain_err(|| "non-string block")?;
     let block_bytes = Vec::from_hex(block_hex).chain_err(|| "non-hex block")?;
-    Ok(deserialize(&block_bytes).chain_err(|| format!("failed to parse block {}", block_hex))?)
+    Ok(crate::chain::deserialize_block(&block_bytes)
+        .chain_err(|| format!("failed to parse block {}", block_hex))?)
 }
 
 fn tx_from_value(value: Value) -> Result<Transaction> {
@@ -621,7 +622,7 @@ impl Daemon {
                 Err(e) => {
                     let err_msg = format!("{e:?}");
                     if err_msg.contains("Block not found on disk")
-                       || err_msg.contains("Block not available") 
+                        || err_msg.contains("Block not available")
                     {
                         // There is a small chance the node returns the header but didn't finish to index the block
                         log::warn!("getblocks failing with: {e:?} trying {attempts} more time")

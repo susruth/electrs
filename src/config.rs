@@ -300,7 +300,15 @@ impl Config {
 
         let m = args.get_matches();
 
-        let network_name = m.value_of("network").unwrap_or("mainnet");
+        #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
+        let default_network = "mainnet";
+        #[cfg(feature = "liquid")]
+        let default_network = "liquid";
+        #[cfg(feature = "litecoin")]
+        let default_network = "litecoin";
+        #[cfg(feature = "dogecoin")]
+        let default_network = "dogecoin";
+        let network_name = m.value_of("network").unwrap_or(default_network);
         let network_type = Network::from(network_name);
         let db_dir = Path::new(m.value_of("db_dir").unwrap_or("./db"));
         let db_path = db_dir.join(network_name);
@@ -319,32 +327,46 @@ impl Config {
         let asset_db_path = m.value_of("asset_db_path").map(PathBuf::from);
 
         let default_daemon_port = match network_type {
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Bitcoin => 8332,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet => 18332,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet4 => 48332,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Regtest => 18443,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Signet => 38332,
 
             #[cfg(feature = "liquid")]
             Network::Liquid => 7041,
             #[cfg(feature = "liquid")]
             Network::LiquidTestnet | Network::LiquidRegtest => 7040,
+
+            #[cfg(feature = "litecoin")]
+            Network::Litecoin => 9332,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinTestnet => 19332,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinRegtest => 19443,
+
+            #[cfg(feature = "dogecoin")]
+            Network::Dogecoin => 22555,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinTestnet => 44555,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinRegtest => 18443,
         };
         let default_electrum_port = match network_type {
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Bitcoin => 50001,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet => 60001,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet4 => 40001,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Regtest => 60401,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Signet => 60601,
 
             #[cfg(feature = "liquid")]
@@ -353,17 +375,31 @@ impl Config {
             Network::LiquidTestnet => 51301,
             #[cfg(feature = "liquid")]
             Network::LiquidRegtest => 51401,
+
+            #[cfg(feature = "litecoin")]
+            Network::Litecoin => 50001,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinTestnet => 60001,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinRegtest => 60401,
+
+            #[cfg(feature = "dogecoin")]
+            Network::Dogecoin => 50001,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinTestnet => 60001,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinRegtest => 60401,
         };
         let default_http_port = match network_type {
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Bitcoin => 3000,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet => 3001,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet4 => 3004,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Regtest => 3002,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Signet => 3003,
 
             #[cfg(feature = "liquid")]
@@ -372,17 +408,31 @@ impl Config {
             Network::LiquidTestnet => 3001,
             #[cfg(feature = "liquid")]
             Network::LiquidRegtest => 3002,
+
+            #[cfg(feature = "litecoin")]
+            Network::Litecoin => 3000,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinTestnet => 3001,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinRegtest => 3002,
+
+            #[cfg(feature = "dogecoin")]
+            Network::Dogecoin => 3000,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinTestnet => 3001,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinRegtest => 3002,
         };
         let default_monitoring_port = match network_type {
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Bitcoin => 4224,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet => 14224,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Testnet4 => 44224,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Regtest => 24224,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
             Network::Signet => 54224,
 
             #[cfg(feature = "liquid")]
@@ -391,6 +441,20 @@ impl Config {
             Network::LiquidTestnet => 44324,
             #[cfg(feature = "liquid")]
             Network::LiquidRegtest => 44224,
+
+            #[cfg(feature = "litecoin")]
+            Network::Litecoin => 4224,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinTestnet => 14224,
+            #[cfg(feature = "litecoin")]
+            Network::LitecoinRegtest => 24224,
+
+            #[cfg(feature = "dogecoin")]
+            Network::Dogecoin => 4224,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinTestnet => 14224,
+            #[cfg(feature = "dogecoin")]
+            Network::DogecoinRegtest => 24224,
         };
 
         let daemon_rpc_addr: SocketAddr = str_to_socketaddr(
@@ -424,7 +488,14 @@ impl Config {
             .map(PathBuf::from)
             .unwrap_or_else(|| {
                 let mut default_dir = home_dir().expect("no homedir");
+                #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
                 default_dir.push(".bitcoin");
+                #[cfg(feature = "liquid")]
+                default_dir.push(".bitcoin");
+                #[cfg(feature = "litecoin")]
+                default_dir.push(".litecoin");
+                #[cfg(feature = "dogecoin")]
+                default_dir.push(".dogecoin");
                 default_dir
             });
 
@@ -539,15 +610,15 @@ impl RpcLogging {
 
 pub fn get_network_subdir(network: Network) -> Option<&'static str> {
     match network {
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
         Network::Bitcoin => None,
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
         Network::Testnet => Some("testnet3"),
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
         Network::Testnet4 => Some("testnet4"),
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
         Network::Regtest => Some("regtest"),
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
         Network::Signet => Some("signet"),
 
         #[cfg(feature = "liquid")]
@@ -556,6 +627,20 @@ pub fn get_network_subdir(network: Network) -> Option<&'static str> {
         Network::LiquidTestnet => Some("liquidtestnet"),
         #[cfg(feature = "liquid")]
         Network::LiquidRegtest => Some("liquidregtest"),
+
+        #[cfg(feature = "litecoin")]
+        Network::Litecoin => None,
+        #[cfg(feature = "litecoin")]
+        Network::LitecoinTestnet => Some("testnet4"),
+        #[cfg(feature = "litecoin")]
+        Network::LitecoinRegtest => Some("regtest"),
+
+        #[cfg(feature = "dogecoin")]
+        Network::Dogecoin => None,
+        #[cfg(feature = "dogecoin")]
+        Network::DogecoinTestnet => Some("testnet3"),
+        #[cfg(feature = "dogecoin")]
+        Network::DogecoinRegtest => Some("regtest"),
     }
 }
 
