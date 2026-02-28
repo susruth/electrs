@@ -1,6 +1,6 @@
 use bitcoin::hashes::sha256d::Hash as Sha256dHash;
 use bitcoin::hex::FromHex;
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 use bitcoin::merkle_tree::MerkleBlock;
 
 use crypto::digest::Digest;
@@ -8,7 +8,9 @@ use crypto::sha2::Sha256;
 use itertools::Itertools;
 use rayon::prelude::*;
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(feature = "zcash")]
+use crate::zcash::encode::{deserialize, serialize};
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 use bitcoin::consensus::encode::{deserialize, serialize};
 #[cfg(feature = "liquid")]
 use elements::{
@@ -43,7 +45,9 @@ use crate::elements::{asset, ebcompact::TxidCompat, peg};
 #[cfg(feature = "liquid")]
 use elements::encode::VarInt;
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
+use bitcoin::VarInt;
+#[cfg(feature = "zcash")]
 use bitcoin::VarInt;
 
 const MIN_HISTORY_ITEMS_TO_CACHE: usize = 100;
@@ -1114,7 +1118,7 @@ impl ChainQuery {
             })
     }
 
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(any(feature = "liquid", feature = "zcash")))]
     pub fn get_merkleblock_proof(&self, txid: &Txid) -> Option<MerkleBlock> {
         let _timer = self.start_timer("get_merkleblock_proof");
         let blockid = self.tx_confirming_block(txid)?;
@@ -1855,7 +1859,7 @@ pub trait GetAmountVal {
     fn amount_value(self) -> confidential::Value;
 }
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 impl GetAmountVal for bitcoin::Amount {
     fn amount_value(self) -> u64 {
         self.to_sat()
@@ -1865,6 +1869,12 @@ impl GetAmountVal for bitcoin::Amount {
 impl GetAmountVal for confidential::Value {
     fn amount_value(self) -> confidential::Value {
         self
+    }
+}
+#[cfg(feature = "zcash")]
+impl GetAmountVal for crate::zcash::types::Amount {
+    fn amount_value(self) -> u64 {
+        self.to_sat()
     }
 }
 

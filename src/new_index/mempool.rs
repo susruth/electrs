@@ -1,7 +1,9 @@
 use arraydeque::{ArrayDeque, Wrapping};
 use itertools::{Either, Itertools};
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(feature = "zcash")]
+use crate::zcash::encode::serialize;
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 use bitcoin::consensus::encode::serialize;
 use electrs_macros::trace;
 #[cfg(feature = "liquid")]

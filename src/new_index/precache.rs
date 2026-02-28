@@ -1,4 +1,4 @@
-#[cfg(not(any(feature = "litecoin", feature = "dogecoin")))]
+#[cfg(not(any(feature = "litecoin", feature = "dogecoin", feature = "zcash")))]
 use crate::chain::address::Address;
 use crate::errors::*;
 use crate::new_index::ChainQuery;
@@ -12,7 +12,7 @@ use bitcoin::hex::FromHex;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-#[cfg(not(any(feature = "litecoin", feature = "dogecoin")))]
+#[cfg(not(any(feature = "litecoin", feature = "dogecoin", feature = "zcash")))]
 use std::str::FromStr;
 
 use electrs_macros::trace;
@@ -67,7 +67,7 @@ fn to_scripthash(script_type: &str, script_str: &str) -> Result<FullHash> {
 }
 
 fn address_to_scripthash(addr: &str) -> Result<FullHash> {
-    #[cfg(not(any(feature = "litecoin", feature = "dogecoin")))]
+    #[cfg(not(any(feature = "litecoin", feature = "dogecoin", feature = "zcash")))]
     {
         let addr = Address::from_str(addr).chain_err(|| "invalid address")?;
 
@@ -108,6 +108,22 @@ fn address_to_scripthash(addr: &str) -> Result<FullHash> {
             }
         }
         bail!("invalid Dogecoin address")
+    }
+
+    #[cfg(feature = "zcash")]
+    {
+        // Try all Zcash networks for precache (network doesn't matter for scripthash)
+        let networks = [
+            crate::chain::Network::Zcash,
+            crate::chain::Network::ZcashTestnet,
+            crate::chain::Network::ZcashRegtest,
+        ];
+        for network in &networks {
+            if let Some(script) = crate::zcash::address::parse_zcash_address(addr, *network) {
+                return Ok(compute_script_hash(&script));
+            }
+        }
+        bail!("invalid Zcash address")
     }
 }
 

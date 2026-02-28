@@ -23,7 +23,9 @@ use crate::metrics::{Gauge, HistogramOpts, HistogramVec, MetricOpts, Metrics};
 use crate::new_index::{Query, Utxo};
 use crate::util::electrum_merkle::{get_header_merkle_proof, get_id_from_pos, get_tx_merkle_proof};
 use crate::util::{create_socket, spawn_thread, BlockId, BoolThen, Channel, FullHash, HeaderEntry};
-#[cfg(not(feature = "liquid"))]
+#[cfg(feature = "zcash")]
+use crate::zcash::encode::serialize_hex;
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 use bitcoin::consensus::encode::serialize_hex;
 #[cfg(feature = "liquid")]
 use elements::encode::serialize_hex;

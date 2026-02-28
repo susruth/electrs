@@ -16,7 +16,8 @@ impl TxFeeInfo {
         let fee = get_tx_fee(tx, prevouts, network);
 
         let weight = tx.weight();
-        #[cfg(not(feature = "liquid"))] // rust-bitcoin has a wrapper Weight type
+        #[cfg(not(any(feature = "liquid", feature = "zcash")))]
+        // rust-bitcoin has a wrapper Weight type
         let weight = weight.to_wu();
 
         let vsize_float = weight as f64 / 4f64; // for more accurate sat/vB

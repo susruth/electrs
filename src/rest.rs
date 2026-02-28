@@ -1,6 +1,11 @@
+#[cfg(not(feature = "zcash"))]
 use crate::chain::{
     address, BlockHash, Network, OutPoint, Script, Sequence, Transaction, TxIn, TxMerkleNode,
     TxOut, Txid,
+};
+#[cfg(feature = "zcash")]
+use crate::chain::{
+    BlockHash, Network, OutPoint, Script, Sequence, Transaction, TxIn, TxOut, Txid,
 };
 use crate::config::Config;
 use crate::errors;
@@ -12,7 +17,9 @@ use crate::util::{
     is_coinbase, BlockHeaderMeta, BlockId, FullHash, ScriptToAddr, ScriptToAsm, TransactionStatus,
     DEFAULT_BLOCKHASH,
 };
-#[cfg(not(feature = "liquid"))]
+#[cfg(feature = "zcash")]
+use crate::zcash::encode;
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 use bitcoin::consensus::encode;
 
 use bitcoin::hashes::FromSliceError as HashError;
@@ -68,16 +75,24 @@ struct BlockValue {
     tx_count: u32,
     size: u32,
     weight: u64,
+    #[cfg(not(feature = "zcash"))]
     merkle_root: TxMerkleNode,
+    #[cfg(feature = "zcash")]
+    merkle_root: String,
     previousblockhash: Option<BlockHash>,
     mediantime: u32,
 
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(any(feature = "liquid", feature = "zcash")))]
     nonce: u32,
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(any(feature = "liquid", feature = "zcash")))]
     bits: bitcoin::pow::CompactTarget,
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(any(feature = "liquid", feature = "zcash")))]
     difficulty: f64,
+
+    #[cfg(feature = "zcash")]
+    nonce: String,
+    #[cfg(feature = "zcash")]
+    bits: u32,
 
     #[cfg(feature = "liquid")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -91,15 +106,20 @@ impl BlockValue {
         BlockValue {
             id: header.block_hash(),
             height: blockhm.header_entry.height() as u32,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "zcash")))]
             version: header.version.to_consensus() as u32,
             #[cfg(feature = "liquid")]
             version: header.version,
+            #[cfg(feature = "zcash")]
+            version: header.version as u32,
             timestamp: header.time,
             tx_count: blockhm.meta.tx_count,
             size: blockhm.meta.size,
             weight: blockhm.meta.weight as u64,
+            #[cfg(not(feature = "zcash"))]
             merkle_root: header.merkle_root,
+            #[cfg(feature = "zcash")]
+            merkle_root: bitcoin::hex::DisplayHex::to_lower_hex_string(&header.merkle_root),
             previousblockhash: if header.prev_blockhash != *DEFAULT_BLOCKHASH {
                 Some(header.prev_blockhash)
             } else {
@@ -107,12 +127,17 @@ impl BlockValue {
             },
             mediantime: blockhm.mtp,
 
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "zcash")))]
             bits: header.bits,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "zcash")))]
             nonce: header.nonce,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "zcash")))]
             difficulty: header.difficulty_float(),
+
+            #[cfg(feature = "zcash")]
+            bits: header.bits,
+            #[cfg(feature = "zcash")]
+            nonce: bitcoin::hex::DisplayHex::to_lower_hex_string(&header.nonce),
 
             #[cfg(feature = "liquid")]
             ext: Some(header.ext.clone()),
@@ -167,15 +192,18 @@ impl TransactionValue {
         let fee = get_tx_fee(&tx, &prevouts, config.network_type);
 
         let weight = tx.weight();
-        #[cfg(not(feature = "liquid"))] // rust-bitcoin has a wrapper Weight type
+        #[cfg(not(any(feature = "liquid", feature = "zcash")))]
+        // rust-bitcoin has a wrapper Weight type
         let weight = weight.to_wu();
 
         TransactionValue {
             txid: tx.compute_txid(),
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "liquid", feature = "zcash")))]
             version: tx.version.0 as u32,
             #[cfg(feature = "liquid")]
             version: tx.version as u32,
+            #[cfg(feature = "zcash")]
+            version: tx.version.0 as u32,
             locktime: tx.lock_time.to_consensus_u32(),
             vin: vins,
             vout: vouts,
@@ -313,10 +341,12 @@ struct TxOutValue {
 
 impl TxOutValue {
     fn new(txout: &TxOut, config: &Config) -> Self {
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "zcash")))]
         let value = txout.value.to_sat();
         #[cfg(feature = "liquid")]
         let value = txout.value.explicit();
+        #[cfg(feature = "zcash")]
+        let value = txout.value.to_sat();
 
         #[cfg(not(feature = "liquid"))]
         let is_fee = false;
@@ -941,7 +971,7 @@ fn handle_request(
                 ttl,
             )
         }
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(any(feature = "liquid", feature = "zcash")))]
         (&Method::GET, Some(&"tx"), Some(hash), Some(&"merkleblock-proof"), None, None) => {
             let hash = Txid::from_str(hash)?;
 
@@ -1274,7 +1304,12 @@ fn to_scripthash(
 }
 
 fn address_to_scripthash(addr: &str, network: Network) -> Result<FullHash, HttpError> {
-    #[cfg(not(any(feature = "liquid", feature = "litecoin", feature = "dogecoin")))]
+    #[cfg(not(any(
+        feature = "liquid",
+        feature = "litecoin",
+        feature = "dogecoin",
+        feature = "zcash"
+    )))]
     {
         let addr = address::Address::from_str(addr)?;
         let is_expected_net = addr.is_valid_for_network(network.into());
@@ -1307,6 +1342,14 @@ fn address_to_scripthash(addr: &str, network: Network) -> Result<FullHash, HttpE
     {
         let script_bytes = crate::util::dogecoin::parse_dogecoin_address(addr, network)
             .ok_or_else(|| HttpError::from("Invalid Dogecoin address".to_string()))?;
+        let script = Script::from(script_bytes);
+        Ok(compute_script_hash(&script))
+    }
+
+    #[cfg(feature = "zcash")]
+    {
+        let script_bytes = crate::zcash::address::parse_zcash_address(addr, network)
+            .ok_or_else(|| HttpError::from("Invalid Zcash address".to_string()))?;
         let script = Script::from(script_bytes);
         Ok(compute_script_hash(&script))
     }
@@ -1381,7 +1424,7 @@ impl From<std::string::FromUtf8Error> for HttpError {
     }
 }
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 impl From<address::ParseError> for HttpError {
     fn from(e: address::ParseError) -> Self {
         HttpError::from(e.to_string())

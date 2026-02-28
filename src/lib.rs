@@ -29,5 +29,8 @@ pub mod util;
 #[cfg(feature = "liquid")]
 pub mod elements;
 
+#[cfg(feature = "zcash")]
+pub mod zcash;
+
 #[cfg(feature = "otlp-tracing")]
 pub mod otlp_trace;

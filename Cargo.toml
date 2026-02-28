@@ -17,6 +17,7 @@ default-run = "electrs"
 liquid = ["elements"]
 litecoin = []
 dogecoin = []
+zcash = ["blake2b_simd"]
 electrum-discovery = ["electrum-client"]
 bench = []
 otlp-tracing = [
@@ -40,6 +41,7 @@ clap = "2.33.3"
 crossbeam-channel = "0.5.0"
 dirs = "5.0.1"
 elements = { version = "0.25", features = ["serde"], optional = true }
+blake2b_simd = { version = ">=1, <1.0.3", optional = true }
 error-chain = "0.12.4"
 glob = "0.3"
 itertools = "0.12"

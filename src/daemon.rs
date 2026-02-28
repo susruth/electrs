@@ -15,7 +15,9 @@ use error_chain::ChainedError;
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde_json::{from_str, from_value, Value};
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(feature = "zcash")]
+use crate::zcash::encode::{deserialize, serialize_hex};
+#[cfg(not(any(feature = "liquid", feature = "zcash")))]
 use bitcoin::consensus::encode::{deserialize, serialize_hex};
 #[cfg(feature = "liquid")]
 use elements::encode::{deserialize, serialize_hex};

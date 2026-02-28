@@ -349,7 +349,8 @@ pub struct BlockHeaderMeta {
 impl From<&BlockEntry> for BlockMeta {
     fn from(b: &BlockEntry) -> BlockMeta {
         let weight = b.block.weight();
-        #[cfg(not(feature = "liquid"))] // rust-bitcoin has a wrapper Weight type
+        #[cfg(not(any(feature = "liquid", feature = "zcash")))]
+        // rust-bitcoin has a wrapper Weight type
         let weight = weight.to_wu();
 
         BlockMeta {
